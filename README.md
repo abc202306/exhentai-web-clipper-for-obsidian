@@ -79,7 +79,7 @@ mtime: 2025-11-14T17:12:04+08:00
 
 ## How to use
 
-First, install this user script at [[placehold]] (Note: the github repo is https://github.com/abc202306/exhentai-web-clipper-for-obsidian)
+First, install this user script at https://greasyfork.org/en/scripts/555824-exhentai-web-clipper-for-obsidian (Note: the github repo is https://github.com/abc202306/exhentai-web-clipper-for-obsidian)
 
 Then, when you navigate to the URL https://exhentai.net/g/*, click the "OK" button in the pop-up dialog box to save the current gallery's metadata as an Obsidian Markdown note file.
 
