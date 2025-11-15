@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.4.20251115
+// @version      v1.0.5.20251115
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -39,7 +39,6 @@
 
   // Extract metadata from page
   function getData() {
-    const info = document.getElementById("gm");
     const titleEN = getTitleStr(document.getElementById("gn"));
     const titleJP = getTitleStr(document.getElementById("gj"));
 
@@ -112,6 +111,7 @@
       mixed: [],
       location: [],
       other: [],
+      unindexedData: {}
     };
 
     [...document.getElementById("taglist").firstChild.firstChild.children].map(c => {
@@ -127,7 +127,44 @@
       }
     });
 
+    const dataKeyIndexed = [
+      "title", "english", "japanese", "url", "coverPromise",
+      "categories",
+      "uploader", "uploaded",
+      "parent", "visible", "language", "filesize", "pagecount", "favorited", "rating",
+      "ctime", "mtime",
+      "keywords",
+      "parody", "character", "artist", "group", "language", "female", "male", "mixed", "location", "other",
+      "unindexedData"
+    ];
+
+    data.unindexedData = Object.fromEntries(Object.keys(data).filter(key => !dataKeyIndexed.includes(key)).map(key => [key, data[key]]));
+
     return data;
+  } 
+
+  function getUnindexedDataFrontMatterPartStrBlock(unindexedData) {
+    let unindexedDataFrontMatterPartStrBlock = '';
+    Object.entries(unindexedData).forEach(([key,value]) => {
+      if (Array.isArray(data[key])) {
+        unindexedDataFrontMatterPartStrBlock += `\n${key}:${getYamlArrayStr(value)}`;
+      } else {
+        unindexedDataFrontMatterPartStrBlock += `\n${key}: "${value}"`;
+      }
+    });
+    return unindexedDataFrontMatterPartStrBlock;
+  }
+
+  function getUnindexedDataTablePartStrBlock(unindexedData) {
+    let unindexedDataTablePartStrBlock = '';
+    Object.entries(unindexedData).forEach(([key,value]) => {
+      if (Array.isArray(data[key])) {
+        unindexedDataTablePartStrBlock += `\n| ${key} | ${value.join(", ")} |`;
+      } else {
+        unindexedDataTablePartStrBlock += `\n| ${key} | ${value} |`;
+      }
+    });
+    return unindexedDataTablePartStrBlock;
   }
 
   // Build Obsidian note content
@@ -162,7 +199,7 @@ favorited: ${data.favorited}
 rating: ${data.rating}
 uploaded: ${data.uploaded}
 ctime: ${data.ctime}
-mtime: ${data.mtime}
+mtime: ${data.mtime}${getUnindexedDataFrontMatterPartStrBlock(data.unindexedData)}
 ---
 
 # ${data.title}
@@ -193,7 +230,7 @@ mtime: ${data.mtime}
 | visible | ${data.visible} |
 | filesize | ${data.filesize} |
 | favorited | ${data.favorited} |
-| rating | ${data.rating} |
+| rating | ${data.rating} |${getUnindexedDataTablePartStrBlock(data.unindexedData)}
 `;
   }
 
