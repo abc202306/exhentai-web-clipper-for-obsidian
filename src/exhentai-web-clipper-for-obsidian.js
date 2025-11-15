@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.2.20251114
+// @version      v1.0.3.20251115
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -40,36 +40,36 @@
   // Extract metadata from page
   function getData() {
     const info = document.getElementById("gm");
-    const titleEN = document.getElementById("gn");
-    const titleJP = document.getElementById("gj");
+    const titleEN = getTitleStr(document.getElementById("gn"));
+    const titleJP = getTitleStr(document.getElementById("gj"));
 
     const now = getLocalISOStringWithTimezone();
 
-    const data0 = Object.fromEntries([...document.getElementById("gdd").firstChild.firstChild.childNodes].map(c=>{
-        let key =c.children[0].innerText.replace(/:$/,"").toLowerCase().replaceAll(/\s/g,"");
-        let value;
-        if (key === "posted") {
-            key = "uploaded";
-            const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
-            value = postedTimeData.year+"-"+postedTimeData.month+"-"+postedTimeData.day+"T"+postedTimeData.hour+":"+postedTimeData.minute+":00Z";
-        } else if (key === "parent") {
-            value = c.children[1].firstChild.href||c.children[1].innerText;
-        } else if (key === "visible") {
-            value = c.children[1].innerText;
-        } else if (key === "language") {
-            value = c.children[1].innerText.split(/\s+/).map(i=>(i==="TR")?("[[translated]]"):("[["+i+"]]"));
-        } else if (key === "filesize") {
-            value = c.children[1].innerText;
-        } else if (key === "length") {
-            key = "pagecount";
-            value = parseInt(c.children[1].innerText.replace(/ pages$/,""));
-        } else if (key === "favorited") {
-            value = parseInt(c.children[1].innerText.replace(/ times$/,""));
-        } else {
-            value = c.children[1].innerText;
-        }
-        return [key, value];
-    }))
+    const data0 = Object.fromEntries([...document.getElementById("gdd").firstChild.firstChild.childNodes].map(c => {
+      let key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
+      let value;
+      if (key === "posted") {
+        key = "uploaded";
+        const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
+        value = postedTimeData.year + "-" + postedTimeData.month + "-" + postedTimeData.day + "T" + postedTimeData.hour + ":" + postedTimeData.minute + ":00Z";
+      } else if (key === "parent") {
+        value = c.children[1].firstChild.href || c.children[1].innerText;
+      } else if (key === "visible") {
+        value = c.children[1].innerText;
+      } else if (key === "language") {
+        value = c.children[1].innerText.split(/\s+/).map(i => (i === "TR") ? ("[[translated]]") : ("[[" + i + "]]"));
+      } else if (key === "filesize") {
+        value = c.children[1].innerText;
+      } else if (key === "length") {
+        key = "pagecount";
+        value = parseInt(c.children[1].innerText.replace(/ pages$/, ""));
+      } else if (key === "favorited") {
+        value = parseInt(c.children[1].innerText.replace(/ times$/, ""));
+      } else {
+        value = c.children[1].innerText;
+      }
+      return [key, value];
+    }));
 
 
     const gidPairResult = /^https?:\/\/e[x\-]hentai.org\/g\/(\d*)\/([a-z\d]*)\/?/.exec(window.location.href);
@@ -77,17 +77,17 @@
     const galleryToken = gidPairResult ? gidPairResult[2] : null;
 
     const data = {
-      title: sanitizeTitle(getTitleStr(titleJP || titleEN)),
-      english: getTitleStr(titleEN),
-      japanese: getTitleStr(titleJP),
+      title: sanitizeTitle(titleJP || titleEN),
+      english: titleEN,
+      japanese: titleJP,
       url: window.location.href,
-      
-      coverPromise: fetch('https://api.e-hentai.org/api.php',{method: "POST",body:JSON.stringify({"method": "gdata", "gidlist": [[galleryID,galleryToken]], "namespace": 1})}).then(response=>{console.log(response);return response.json()}).then(json=>{console.log(json);return json.gmetadata[0].thumb}),
-      
-      categories: ["[["+document.getElementById("gdc").innerText+"]]"], // gd3.Category => categories
 
-      uploader: ["[["+document.getElementById("gdn").innerText+"]]"], // gd3.Uploader => uploader
-      
+      coverPromise: fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) }).then(response => { console.log(response); return response.json(); }).then(json => { console.log(json); return json.gmetadata[0].thumb; }),
+
+      categories: ["[[" + document.getElementById("gdc").innerText + "]]"], // gd3.Category => categories
+
+      uploader: ["[[" + document.getElementById("gdn").innerText + "]]"], // gd3.Uploader => uploader
+
       uploaded: data0.uploaded, // gd3.Posted => uploaded
       parent: data0.parent, // gd3.Parent => parent
       visible: data0.visible, // gd3.Visible => visible
@@ -96,35 +96,35 @@
       pagecount: data0.pagecount, // gd3.length => pagecount
       favorited: data0.favorited, // gd3.Favorited => favorited
 
-      rating: parseFloat(document.getElementById("rating_label").innerText.replace(/Average: ([\d\.]*)/,"$1")),
-      
+      rating: parseFloat(document.getElementById("rating_label").innerText.replace(/Average: ([\d\.]*)/, "$1")),
+
       ctime: now,
       mtime: now,
 
       keywords: [],
       parody: [],
-        character: [],
-        artist: [],
-        group: [],
-        language: [],
-        female: [],
-        male: [],
-        mixed: [],
-        location: [],
-        other: [],
+      character: [],
+      artist: [],
+      group: [],
+      language: [],
+      female: [],
+      male: [],
+      mixed: [],
+      location: [],
+      other: [],
     };
 
-    [...document.getElementById("taglist").firstChild.firstChild.children].map(c=>{
-        const key = c.children[0].innerText.replace(/:$/,"").toLowerCase().replaceAll(/\s/g,"");
-        const value = c.children[1].innerText.split("\n").map(i=>"[["+getTagNameStr(i)+"]]");
-        
-        if (Array.isArray(data[key])) {
-            data[key] = data[key].concat(value);
-        } else if (data[key]) {
-            data[key] = [data[key]].concat(value);
-        } else {
-            data[key] = value;
-        }
+    [...document.getElementById("taglist").firstChild.firstChild.children].map(c => {
+      const key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
+      const value = c.children[1].innerText.split("\n").map(i => "[[" + getTagNameStr(i) + "]]");
+
+      if (Array.isArray(data[key])) {
+        data[key] = data[key].concat(value);
+      } else if (data[key]) {
+        data[key] = [data[key]].concat(value);
+      } else {
+        data[key] = value;
+      }
     });
 
     return data;
@@ -211,7 +211,7 @@ mtime: ${data.mtime}
     return titleEl.innerText.replace(/\s{2,}/g, " ");
   }
 
-  function getTagNameStr(str){
+  function getTagNameStr(str) {
     return str.trim()
       .replace(/\s+/g, "-")
       .replace("-|-", "-or-");
