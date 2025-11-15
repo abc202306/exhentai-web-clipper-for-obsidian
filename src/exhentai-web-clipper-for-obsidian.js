@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.5.20251115
+// @version      v1.0.6.20251115
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -146,7 +146,7 @@
   function getUnindexedDataFrontMatterPartStrBlock(unindexedData) {
     let unindexedDataFrontMatterPartStrBlock = '';
     Object.entries(unindexedData).forEach(([key,value]) => {
-      if (Array.isArray(data[key])) {
+      if (Array.isArray(value)) {
         unindexedDataFrontMatterPartStrBlock += `\n${key}:${getYamlArrayStr(value)}`;
       } else {
         unindexedDataFrontMatterPartStrBlock += `\n${key}: "${value}"`;
@@ -158,7 +158,7 @@
   function getUnindexedDataTablePartStrBlock(unindexedData) {
     let unindexedDataTablePartStrBlock = '';
     Object.entries(unindexedData).forEach(([key,value]) => {
-      if (Array.isArray(data[key])) {
+      if (Array.isArray(value)) {
         unindexedDataTablePartStrBlock += `\n| ${key} | ${value.join(", ")} |`;
       } else {
         unindexedDataTablePartStrBlock += `\n| ${key} | ${value} |`;
