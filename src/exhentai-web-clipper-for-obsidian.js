@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.3.20251115
+// @version      v1.0.4.20251115
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -21,7 +21,7 @@
     const fileContent = await getFileContent(data);
     const obsidianURI = getObsidianURI(data.title, fileContent);
 
-    if (confirm("Do you want to proceed?")) {
+    if (confirm("EXHentai Web Clipper for Obsidian (a tampermonkey user script by abc202306) says:\n\nDo you want to proceed to clip the exhentai gallery metadata as a obsidian markdown note (by obsidian uri protocol api)?\n\nclick 'OK' to proceed, or 'Cancel' to abort.")) {
       window.location.href = obsidianURI;
     }
   }
