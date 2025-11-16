@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.12.20251116
+// @version      v1.0.13.20251116
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -46,34 +46,33 @@
       const now = this.util.getLocalISOStringWithTimezone();
 
       const data0 = Object.fromEntries([...(gdd && gdd.firstChild && gdd.firstChild.firstChild ? gdd.firstChild.firstChild.childNodes : [])].map(c => {
-        let key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
-        let value;
-        if (key === "posted") {
-          key = "uploaded";
-          const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
-          value = postedTimeData.year + "-" + postedTimeData.month + "-" + postedTimeData.day + "T" + postedTimeData.hour + ":" + postedTimeData.minute + ":00Z";
-        } else if (key === "parent") {
-          value = (c.children[1].firstChild && c.children[1].firstChild.href) || c.children[1].innerText;
-        } else if (key === "visible") {
-          value = c.children[1].innerText;
-        } else if (key === "language") {
-          const languageStr = c.children[1].innerText;
-          if (languageStr.length === 0) {
-            value = [];
-          } else {
-            value = c.children[1].innerText.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? ("[[translated]]") : ("[[" + i.toLowerCase() + "]]"));
-          }
-        } else if (key === "filesize") {
-          value = c.children[1].innerText;
-        } else if (key === "length") {
-          key = "pagecount";
-          value = parseInt(c.children[1].innerText.replace(/ pages$/, ""));
-        } else if (key === "favorited") {
-          value = parseInt(c.children[1].innerText.replace(/ times$/, ""));
-        } else {
-          value = c.children[1].innerText;
+        const key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
+        const value = key === "posted"
+          ? (() => {
+              const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
+              return postedTimeData.year + "-" + postedTimeData.month + "-" + postedTimeData.day + "T" + postedTimeData.hour + ":" + postedTimeData.minute + ":00Z";
+            })()
+          : key === "language"
+          ? (() => {
+              const languageStr = c.children[1].innerText;
+              return languageStr.length === 0 ? [] : languageStr.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? "[[translated]]" : ("[[" + i.toLowerCase() + "]]"));
+            })()
+          : key === "length"
+          ? parseInt(c.children[1].innerText.replace(/ pages$/, ""))
+          : key === "favorited"
+          ? parseInt(c.children[1].innerText.replace(/ times$/, ""))
+          : key === "parent"
+          ? (c.children[1].firstChild && c.children[1].firstChild.href) || c.children[1].innerText
+          : key === "visible"
+          ? c.children[1].innerText
+          : key === "filesize"
+          ? c.children[1].innerText
+          : c.children[1].innerText;
+        const keyMap = {
+          "posted": "uploaded",
+          "length": "pagecount"
         }
-        return [key, value];
+        return [keyMap[key] || key, value];
       }));
 
       const data0Length = 7;
@@ -134,18 +133,13 @@
           const key = (c.children[0] && c.children[0].innerText ? c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "") : "");
           const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + this.util.getTagNameStr(i) + "]]" ) : [];
 
-          let newValue;
-          if (Array.isArray(data[key])) {
-            newValue = data[key].concat(value);
-          } else if (data[key]) {
-            newValue = [data[key]].concat(value);
-          } else {
-            newValue = value;
-          }
-
-          if (Array.isArray(newValue)) {
-            newValue = [...new Set(newValue)];
-          }
+          const newValue = [...new Set(
+            Array.isArray(data[key])
+              ? data[key].concat(value)
+              : data[key]
+              ? [data[key]].concat(value)
+              : value
+          )];
 
           if (dataKeyIndexed.includes(key)) {
             data[key] = newValue;
