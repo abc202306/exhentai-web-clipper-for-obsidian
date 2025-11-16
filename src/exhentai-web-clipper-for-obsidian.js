@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.8.20251116
+// @version      v1.0.9.20251116
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -17,7 +17,7 @@
     util;
 
     // Entry point
-    static main(){
+    static main() {
       new Main(new Util());
     }
 
@@ -54,7 +54,7 @@
           if (languageStr.length === 0) {
             value = [];
           } else {
-            value = c.children[1].innerText.split(/\s+/).map(i => (i === "TR") ? ("[[translated]]") : ("[[" + i + "]]"));
+            value = c.children[1].innerText.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? ("[[translated]]") : ("[[" + i.toLowerCase() + "]]"));
           }
         } else if (key === "filesize") {
           value = c.children[1].innerText;
@@ -82,9 +82,9 @@
 
         coverPromise: fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) }).then(response => response.json()).then(json => json.gmetadata[0].thumb),
 
-        categories: ["[[" + document.getElementById("gdc").innerText + "]]"], // gd3.Category => categories
+        categories: ["[[" + document.getElementById("gdc").innerText.trim().toLowerCase().replaceAll(/\s/g,"-") + "]]"], // gd3.Category => categories
 
-        uploader: ["[[" + document.getElementById("gdn").innerText + "]]"], // gd3.Uploader => uploader
+        uploader: ["[[" + document.getElementById("gdn").innerText.trim() + "]]"], // gd3.Uploader => uploader
 
         uploaded: data0.uploaded, // gd3.Posted => uploaded
         parent: data0.parent, // gd3.Parent => parent
@@ -135,6 +135,10 @@
           newValue = [data[key]].concat(value);
         } else {
           newValue = value;
+        }
+        
+        if (Array.isArray(newValue)) {
+          newValue = [...new Set(newValue)];
         }
 
         if (dataKeyIndexed.includes(key)) {
@@ -272,7 +276,7 @@ mtime: ${data.mtime}${this.util.getUnindexedDataFrontMatterPartStrBlock(data.uni
       return (titleStr + addtionalSuffix)
         .replaceAll("[", "【")
         .replaceAll("]", "】")
-        .replaceAll(/[?:]/g, "_")
+        .replaceAll(/[\\\/\|\*\?\:\<\>\"]/g, "_")
         .replaceAll(/\s{2,}/g, " ");
     }
 
