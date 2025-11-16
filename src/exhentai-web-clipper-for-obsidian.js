@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.9.20251116
+// @version      v1.0.10.20251116
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -33,12 +33,19 @@
 
     // Extract metadata from page
     getEXHentaiGalleryData() {
-      const titleEN = this.util.getTitleStr(document.getElementById("gn"));
-      const titleJP = this.util.getTitleStr(document.getElementById("gj"));
+      const gn = document.getElementById("gn");
+      const gj = document.getElementById("gj");
+      const gdd = document.getElementById("gdd");
+      const gdc = document.getElementById("gdc");
+      const gdn = document.getElementById("gdn");
+      const taglist = document.getElementById("taglist");
+
+      const titleEN = this.util.getTitleStr(gn);
+      const titleJP = this.util.getTitleStr(gj);
 
       const now = this.util.getLocalISOStringWithTimezone();
 
-      const data0 = Object.fromEntries([...document.getElementById("gdd").firstChild.firstChild.childNodes].map(c => {
+      const data0 = Object.fromEntries([...(gdd && gdd.firstChild && gdd.firstChild.firstChild ? gdd.firstChild.firstChild.childNodes : [])].map(c => {
         let key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
         let value;
         if (key === "posted") {
@@ -46,7 +53,7 @@
           const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
           value = postedTimeData.year + "-" + postedTimeData.month + "-" + postedTimeData.day + "T" + postedTimeData.hour + ":" + postedTimeData.minute + ":00Z";
         } else if (key === "parent") {
-          value = c.children[1].firstChild.href || c.children[1].innerText;
+          value = (c.children[1].firstChild && c.children[1].firstChild.href) || c.children[1].innerText;
         } else if (key === "visible") {
           value = c.children[1].innerText;
         } else if (key === "language") {
@@ -80,11 +87,15 @@
         japanese: titleJP,
         url: window.location.href,
 
-        coverPromise: fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) }).then(response => response.json()).then(json => json.gmetadata[0].thumb),
+        // coverPromise: fetch cover URL once; swallow errors and resolve to empty string on failure
+        coverPromise: fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) })
+          .then(response => response.ok ? response.json() : Promise.reject(new Error('cover fetch failed')))
+          .then(json => (json && json.gmetadata && json.gmetadata[0] && json.gmetadata[0].thumb) || "")
+          .catch(() => ""),
 
-        categories: ["[[" + document.getElementById("gdc").innerText.trim().toLowerCase().replaceAll(/\s/g,"-") + "]]"], // gd3.Category => categories
+        categories: (gdc && gdc.innerText) ? ["[[" + gdc.innerText.trim().toLowerCase().replaceAll(/\s/g,"-") + "]]"] : [], // gd3.Category => categories
 
-        uploader: ["[[" + document.getElementById("gdn").innerText.trim() + "]]"], // gd3.Uploader => uploader
+        uploader: (gdn && gdn.innerText) ? ["[[" + gdn.innerText.trim() + "]]"] : [], // gd3.Uploader => uploader
 
         uploaded: data0.uploaded, // gd3.Posted => uploaded
         parent: data0.parent, // gd3.Parent => parent
@@ -123,37 +134,38 @@
         "unindexedData"
       ];
 
-      [...document.getElementById("taglist").firstChild.firstChild.children].map(c => {
-        const key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
-        const value = c.children[1].innerText.split("\n").map(i => "[[" + this.util.getTagNameStr(i) + "]]");
+      if (taglist && taglist.firstChild && taglist.firstChild.firstChild) {
+        [...taglist.firstChild.firstChild.children].forEach(c => {
+          const key = (c.children[0] && c.children[0].innerText ? c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "") : "");
+          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + this.util.getTagNameStr(i) + "]]" ) : [];
 
-        let newValue;
+          let newValue;
+          if (Array.isArray(data[key])) {
+            newValue = data[key].concat(value);
+          } else if (data[key]) {
+            newValue = [data[key]].concat(value);
+          } else {
+            newValue = value;
+          }
 
-        if (Array.isArray(data[key])) {
-          newValue = data[key].concat(value);
-        } else if (data[key]) {
-          newValue = [data[key]].concat(value);
-        } else {
-          newValue = value;
-        }
-        
-        if (Array.isArray(newValue)) {
-          newValue = [...new Set(newValue)];
-        }
+          if (Array.isArray(newValue)) {
+            newValue = [...new Set(newValue)];
+          }
 
-        if (dataKeyIndexed.includes(key)) {
-          data[key] = newValue;
-        } else {
-          data.unindexedData[key] = newValue;
-        }
-        data[key] = newValue;
-      });
+          if (dataKeyIndexed.includes(key)) {
+            data[key] = newValue;
+          } else {
+            data.unindexedData[key] = newValue;
+          }
+        });
+      }
 
       return data;
     }
 
     // Build Obsidian note content
     async getEXHentaiOBMDNoteFileContent(data) {
+      const coverUrl = await data.coverPromise;
       return `---
 up:
   - "[[Gallery]]"
@@ -173,7 +185,7 @@ parody:${this.util.getYamlArrayStr(data.parody)}
 character:${this.util.getYamlArrayStr(data.character)}
 language:${this.util.getYamlArrayStr(data.language)}
 pagecount: ${data.pagecount}
-cover: "${await data.coverPromise}"
+cover: "${coverUrl}"
 uploader:${this.util.getYamlArrayStr(data.uploader)}
 parent: "${data.parent}"
 visible: "${data.visible}"
@@ -187,7 +199,7 @@ mtime: ${data.mtime}${this.util.getUnindexedDataFrontMatterPartStrBlock(data.uni
 
 # ${data.title}
 
-![200](${await data.coverPromise})
+![200](${coverUrl})
 
 | | |
 | --- | --- |
