@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.7.20251116
+// @version      v1.0.8.20251116
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -15,7 +15,7 @@
 
   class Main {
     util;
-    
+
     // Entry point
     static main(){
       new Main(new Util());
@@ -50,7 +50,12 @@
         } else if (key === "visible") {
           value = c.children[1].innerText;
         } else if (key === "language") {
-          value = c.children[1].innerText.split(/\s+/).map(i => (i === "TR") ? ("[[translated]]") : ("[[" + i + "]]"));
+          const languageStr = c.children[1].innerText;
+          if (languageStr.length === 0) {
+            value = [];
+          } else {
+            value = c.children[1].innerText.split(/\s+/).map(i => (i === "TR") ? ("[[translated]]") : ("[[" + i + "]]"));
+          }
         } else if (key === "filesize") {
           value = c.children[1].innerText;
         } else if (key === "length") {
@@ -99,7 +104,6 @@
         character: [],
         artist: [],
         group: [],
-        language: [],
         female: [],
         male: [],
         mixed: [],
