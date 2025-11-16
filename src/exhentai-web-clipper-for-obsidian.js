@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.10.20251116
+// @version      v1.0.11.20251116
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -229,7 +229,7 @@ mtime: ${data.mtime}${this.util.getUnindexedDataFrontMatterPartStrBlock(data.uni
 `;
     }
   }
-
+  
   // utils  
 
   class Util {
@@ -237,9 +237,8 @@ mtime: ${data.mtime}${this.util.getUnindexedDataFrontMatterPartStrBlock(data.uni
       setTimeout(async () => {
         if (confirm(message)) {
           const galleryData = getGalleryData();
-          const obsidianURI = this.getObsidianURI(
-            galleryData.title, await getOBMDNoteFileContent(galleryData)
-          );
+          const content = await Promise.resolve(getOBMDNoteFileContent(galleryData));
+          const obsidianURI = this.getObsidianURI(galleryData.title, content);
           window.location.href = obsidianURI;
         }
       }, timeout);
@@ -253,43 +252,31 @@ mtime: ${data.mtime}${this.util.getUnindexedDataFrontMatterPartStrBlock(data.uni
         ["append", "1"]
       ].map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
 
-      return `obsidian://new?${params};`;
+      return `obsidian://new?${params}`;
     }
 
     getUnindexedDataFrontMatterPartStrBlock(unindexedData) {
-      let unindexedDataFrontMatterPartStrBlock = '';
-      Object.entries(unindexedData).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          unindexedDataFrontMatterPartStrBlock += `\n${key}:${this.getYamlArrayStr(value)}`;
-        } else {
-          unindexedDataFrontMatterPartStrBlock += `\n${key}: "${value}"`;
-        }
-      });
-      return unindexedDataFrontMatterPartStrBlock;
+      return Object.entries(unindexedData).map(([key, value]) => 
+        Array.isArray(value) ? `\n${key}:${this.getYamlArrayStr(value)}` : `\n${key}: "${value}"`
+      ).join('');
     }
 
     getUnindexedDataTablePartStrBlock(unindexedData) {
-      let unindexedDataTablePartStrBlock = '';
-      Object.entries(unindexedData).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          unindexedDataTablePartStrBlock += `\n| ${key} | ${value.join(", ")} |`;
-        } else {
-          unindexedDataTablePartStrBlock += `\n| ${key} | ${value} |`;
-        }
-      });
-      return unindexedDataTablePartStrBlock;
+      return Object.entries(unindexedData).map(([key, value]) => 
+        `\n| ${key} | ${Array.isArray(value) ? value.join(", ") : value} |`
+      ).join('');
     }
 
     escapePipe(str) {
-      return str.replace(/\|/g, "\\|");
+      return (str || "").replace(/\|/g, "\\|");
     }
 
     sanitizeTitle(titleStr, addtionalSuffix) {
       return (titleStr + addtionalSuffix)
-        .replaceAll("[", "【")
-        .replaceAll("]", "】")
-        .replaceAll(/[\\\/\|\*\?\:\<\>\"]/g, "_")
-        .replaceAll(/\s{2,}/g, " ");
+        .replace(/\[/g, "【")
+        .replace(/\]/g, "】")
+        .replace(/[\\\/\|\*\?\:\<\>\"]/g, "_")
+        .replace(/\s{2,}/g, " ");
     }
 
     getTitleStr(titleEl) {
