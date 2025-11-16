@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.11.20251116
+// @version      v1.0.12.20251116
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -76,6 +76,10 @@
         return [key, value];
       }));
 
+      const data0Length = 7;
+      if (data0.length !== data0Length) {
+        throw new Error(`exhentai-web-clipper-for-obsidian: gdd data length changed (expected ${data0Length}, got ${data0.length})`);
+      }
 
       const gidPairResult = /^https?:\/\/e[x\-]hentai.org\/g\/(\d*)\/([a-z\d]*)\/?/.exec(window.location.href);
       const galleryID = gidPairResult ? gidPairResult[1] : null;
@@ -123,16 +127,7 @@
         unindexedData: {}
       };
 
-      const dataKeyIndexed = [
-        "title", "english", "japanese", "url", "coverPromise",
-        "categories",
-        "uploader", "uploaded",
-        "parent", "visible", "language", "filesize", "pagecount", "favorited", "rating",
-        "ctime", "mtime",
-        "keywords",
-        "parody", "character", "artist", "group", "language", "female", "male", "mixed", "location", "other",
-        "unindexedData"
-      ];
+      const dataKeyIndexed = Object.keys(data);
 
       if (taglist && taglist.firstChild && taglist.firstChild.firstChild) {
         [...taglist.firstChild.firstChild.children].forEach(c => {
