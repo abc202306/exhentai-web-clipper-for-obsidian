@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.15.20251118
+// @version      v1.0.16.20251118
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -45,6 +45,9 @@
       const titleEN = util.getTitleStr(gn);
       const titleJP = util.getTitleStr(gj);
       const title = util.sanitizeTitle(titleJP || titleEN, " 【exhentai】");
+
+      const aliases = (titleEN ? [titleEN] : []).concat(titleJP && titleJP !== titleEN ? [titleJP] : []);
+
       const url = window.location.href;
 
       const now = util.getLocalISOStringWithTimezone();
@@ -53,29 +56,29 @@
         const key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
         const value = key === "posted"
           ? (() => {
-              const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
-              return postedTimeData.year + "-" + postedTimeData.month + "-" + postedTimeData.day + "T" + postedTimeData.hour + ":" + postedTimeData.minute + ":00Z";
-            })()
+            const postedTimeData = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2}) (?<hour>\d{2}):(?<minute>\d{2})$/.exec(c.children[1].innerText).groups;
+            return postedTimeData.year + "-" + postedTimeData.month + "-" + postedTimeData.day + "T" + postedTimeData.hour + ":" + postedTimeData.minute + ":00Z";
+          })()
           : key === "language"
-          ? (() => {
+            ? (() => {
               const languageStr = c.children[1].innerText;
               return languageStr.length === 0 ? [] : languageStr.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? "[[translated]]" : ("[[" + i.toLowerCase() + "]]"));
             })()
-          : key === "length"
-          ? parseInt(c.children[1].innerText.replace(/ pages$/, ""))
-          : key === "favorited"
-          ? parseInt(c.children[1].innerText.replace(/ times$/, ""))
-          : key === "parent"
-          ? (c.children[1].firstChild && c.children[1].firstChild.href) || c.children[1].innerText
-          : key === "visible"
-          ? c.children[1].innerText
-          : key === "filesize"
-          ? c.children[1].innerText
-          : c.children[1].innerText;
+            : key === "length"
+              ? parseInt(c.children[1].innerText.replace(/ pages$/, ""))
+              : key === "favorited"
+                ? parseInt(c.children[1].innerText.replace(/ times$/, ""))
+                : key === "parent"
+                  ? (c.children[1].firstChild && c.children[1].firstChild.href) || c.children[1].innerText
+                  : key === "visible"
+                    ? c.children[1].innerText
+                    : key === "filesize"
+                      ? c.children[1].innerText
+                      : c.children[1].innerText;
         const keyMap = {
           "posted": "uploaded",
           "length": "pagecount"
-        }
+        };
         return [keyMap[key] || key, value];
       }));
 
@@ -84,15 +87,15 @@
         throw new Error(`exhentai-web-clipper-for-obsidian: gdd data length changed (expected ${data0EntryCount}, got ${Array.from(Object.entries(data0)).length})`);
       }
 
-      const {uploaded, parent, visible, language, filesize, pagecount, favorited} = data0; 
+      const { uploaded, parent, visible, language, filesize, pagecount, favorited } = data0;
 
-      const categories = (gdc && gdc.innerText) ? ["[[" + gdc.innerText.trim().toLowerCase().replaceAll(/\s/g,"-") + "]]"] : []; // gd3.Category => categories
+      const categories = (gdc && gdc.innerText) ? ["[[" + gdc.innerText.trim().toLowerCase().replaceAll(/\s/g, "-") + "]]"] : []; // gd3.Category => categories
       const uploader = (gdn && gdn.innerText) ? ["[[" + gdn.innerText.trim() + "]]"] : []; // gd3.Uploader => uploader
 
       const rating = parseFloat(document.getElementById("rating_label").innerText.replace(/Average: ([\d\.]*)/, "$1"));
 
       const ctime = now;
-      const mtime = now;   
+      const mtime = now;
 
       const gidPairResult = /^https?:\/\/e[x\-]hentai.org\/g\/(\d*)\/([a-z\d]*)\/?/.exec(window.location.href);
       const galleryID = gidPairResult ? gidPairResult[1] : null;
@@ -100,9 +103,9 @@
 
       // coverPromise: fetch cover URL once; swallow errors and resolve to empty string on failure  
       const coverPromise = fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) })
-          .then(response => response.ok ? response.json() : Promise.reject(new Error('cover fetch failed')))
-          .then(json => (json && json.gmetadata && json.gmetadata[0] && json.gmetadata[0].thumb) || "")
-          .catch(() => "");
+        .then(response => response.ok ? response.json() : Promise.reject(new Error('cover fetch failed')))
+        .then(json => (json && json.gmetadata && json.gmetadata[0] && json.gmetadata[0].thumb) || "")
+        .catch(() => "");
 
       const data = {
         title: title,
@@ -110,6 +113,7 @@
         japanese: titleJP,
         url: url,
 
+        aliases: aliases,
         coverPromise: coverPromise,
 
         categories: categories,
@@ -147,14 +151,14 @@
       if (taglist && taglist.firstChild && taglist.firstChild.firstChild) {
         [...taglist.firstChild.firstChild.children].forEach(c => {
           const key = (c.children[0] && c.children[0].innerText ? c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "") : "");
-          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + util.getTagNameStr(i) + "]]" ) : [];
+          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + util.getTagNameStr(i) + "]]") : [];
 
           const newValue = [...new Set(
             Array.isArray(data[key])
               ? data[key].concat(value)
               : data[key]
-              ? [data[key]].concat(value)
-              : value
+                ? [data[key]].concat(value)
+                : value
           )];
 
           if (dataKeyIndexed.includes(key) && key !== "unindexedData") {
@@ -171,25 +175,27 @@
     // Build Obsidian note content
     async getEXHentaiOBMDNoteFileContent(data) {
       const util = this.util;
-      
+
       const yamlArray = util.getYamlArrayStr.bind(util);
       const unindexDataYamlPart = util.getUnindexedDataFrontMatterPartStrBlock.bind(util);
       const unindexDataTablePart = util.getUnindexedDataTablePartStrBlock.bind(util);
 
-      const {categories, keywords, 
-        female, male, mixed, location, other, 
+      const { categories, keywords,
+        female, male, mixed, location, other,
         title, english, japanese, url,
-        artist, group, 
+        artist, group,
         parody, character, language,
-        pagecount, uploader,
+        pagecount,
+        aliases,
+        coverPromise,
+        uploader,
         parent, visible, filesize,
         favorited, rating, uploaded,
         ctime, mtime,
-        coverPromise,
         unindexedData
       } = data;
-      const coverUrl = await coverPromise; 
-      
+      const coverUrl = await coverPromise;
+
       return `---
 up:
   - "[[Gallery]]"
@@ -209,6 +215,7 @@ parody:${yamlArray(parody)}
 character:${yamlArray(character)}
 language:${yamlArray(language)}
 pagecount: ${pagecount}
+aliases:${yamlArray(aliases)}
 cover: "${coverUrl}"
 uploader:${yamlArray(uploader)}
 parent: "${parent}"
@@ -253,7 +260,7 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 `;
     }
   }
-  
+
   // utils  
 
   class Util {
@@ -280,13 +287,13 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
     }
 
     getUnindexedDataFrontMatterPartStrBlock(unindexedData) {
-      return Object.entries(unindexedData).map(([key, value]) => 
+      return Object.entries(unindexedData).map(([key, value]) =>
         Array.isArray(value) ? `\n${key}:${this.getYamlArrayStr(value)}` : `\n${key}: "${value}"`
       ).join('');
     }
 
     getUnindexedDataTablePartStrBlock(unindexedData) {
-      return Object.entries(unindexedData).map(([key, value]) => 
+      return Object.entries(unindexedData).map(([key, value]) =>
         `\n| ${key} | ${Array.isArray(value) ? value.join(", ") : value} |`
       ).join('');
     }
