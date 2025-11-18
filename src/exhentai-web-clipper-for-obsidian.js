@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.17.20251118
+// @version      v1.0.18.20251118
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -42,13 +42,7 @@
       const gdn = document.getElementById("gdn");
       const taglist = document.getElementById("taglist");
 
-      const titleEN = util.getTitleStr(gn);
-      const titleJP = util.getTitleStr(gj);
-      const title = util.sanitizeTitle(titleJP || titleEN, " 【exhentai】");
-
-      const aliases = (titleEN ? [titleEN] : []).concat(titleJP && titleJP !== titleEN ? [titleJP] : []);
-
-      const url = window.location.href;
+      const url = window.location.href;    
 
       const now = util.getLocalISOStringWithTimezone();
 
@@ -100,6 +94,12 @@
       const gidPairResult = /^https?:\/\/e[x\-]hentai.org\/g\/(\d*)\/([a-z\d]*)\/?/.exec(window.location.href);
       const galleryID = gidPairResult ? gidPairResult[1] : null;
       const galleryToken = gidPairResult ? gidPairResult[2] : null;
+
+      const titleEN = util.getTitleStr(gn);
+      const titleJP = util.getTitleStr(gj);
+      const title = util.sanitizeTitle(titleJP || titleEN, " 【exhentai】 【exhentaiid"+galleryID+"】 【exhentaitoken"+galleryToken+"】");
+
+      const aliases = (titleEN ? [titleEN] : []).concat(titleJP && titleJP !== titleEN ? [titleJP] : []); 
 
       // coverPromise: fetch cover URL once; swallow errors and resolve to empty string on failure  
       const coverPromise = fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) })
@@ -306,7 +306,7 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
       return (titleStr + addtionalSuffix)
         .replace(/\[/g, "【")
         .replace(/\]/g, "】")
-        .replace(/[\\\/\|\*\?\:\<\>\"]/g, "_")
+        .replace(/[#\\\/\|\*\?\:\<\>\"]/g, "_")
         .replace(/\s{2,}/g, " ");
     }
 
