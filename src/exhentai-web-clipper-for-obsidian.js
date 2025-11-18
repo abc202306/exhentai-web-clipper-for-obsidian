@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.18.20251118
+// @version      v1.0.19.20251118
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -133,7 +133,6 @@
         ctime: ctime,
         mtime: mtime,
 
-        keywords: [],
         parody: [],
         character: [],
         artist: [],
@@ -180,7 +179,7 @@
       const unindexDataYamlPart = util.getUnindexedDataFrontMatterPartStrBlock.bind(util);
       const unindexDataTablePart = util.getUnindexedDataTablePartStrBlock.bind(util);
 
-      const { categories, keywords,
+      const { categories,
         female, male, mixed, location, other,
         title, english, japanese, url,
         artist, group,
@@ -200,7 +199,6 @@
 up:
   - "[[Gallery]]"
 categories:${yamlArray(categories)}
-keywords:${yamlArray(keywords)}
 female:${yamlArray(female)}
 male:${yamlArray(male)}
 mixed:${yamlArray(mixed)}
@@ -239,7 +237,6 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 | url | ${url} |
 | parody | ${parody.join(", ")} |
 | character | ${character.join(", ")} |
-| keywords | ${keywords.join(", ")} |
 | artist | ${artist.join(", ")} |
 | group | ${group.join(", ")} |
 | languages | ${language.join(", ")} |
