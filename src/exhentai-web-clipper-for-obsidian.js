@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.14.20251118
+// @version      v1.0.15.20251118
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -33,6 +33,8 @@
 
     // Extract metadata from page
     getEXHentaiGalleryData() {
+      const util = this.util;
+
       const gn = document.getElementById("gn");
       const gj = document.getElementById("gj");
       const gdd = document.getElementById("gdd");
@@ -40,10 +42,12 @@
       const gdn = document.getElementById("gdn");
       const taglist = document.getElementById("taglist");
 
-      const titleEN = this.util.getTitleStr(gn);
-      const titleJP = this.util.getTitleStr(gj);
+      const titleEN = util.getTitleStr(gn);
+      const titleJP = util.getTitleStr(gj);
+      const title = util.sanitizeTitle(titleJP || titleEN, " 【exhentai】");
+      const url = window.location.href;
 
-      const now = this.util.getLocalISOStringWithTimezone();
+      const now = util.getLocalISOStringWithTimezone();
 
       const data0 = Object.fromEntries([...(gdd && gdd.firstChild && gdd.firstChild.firstChild ? gdd.firstChild.firstChild.childNodes : [])].map(c => {
         const key = c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "");
@@ -80,38 +84,50 @@
         throw new Error(`exhentai-web-clipper-for-obsidian: gdd data length changed (expected ${data0EntryCount}, got ${Array.from(Object.entries(data0)).length})`);
       }
 
+      const {uploaded, parent, visible, language, filesize, pagecount, favorited} = data0; 
+
+      const categories = (gdc && gdc.innerText) ? ["[[" + gdc.innerText.trim().toLowerCase().replaceAll(/\s/g,"-") + "]]"] : []; // gd3.Category => categories
+      const uploader = (gdn && gdn.innerText) ? ["[[" + gdn.innerText.trim() + "]]"] : []; // gd3.Uploader => uploader
+
+      const rating = parseFloat(document.getElementById("rating_label").innerText.replace(/Average: ([\d\.]*)/, "$1"));
+
+      const ctime = now;
+      const mtime = now;   
+
       const gidPairResult = /^https?:\/\/e[x\-]hentai.org\/g\/(\d*)\/([a-z\d]*)\/?/.exec(window.location.href);
       const galleryID = gidPairResult ? gidPairResult[1] : null;
       const galleryToken = gidPairResult ? gidPairResult[2] : null;
 
-      const data = {
-        title: this.util.sanitizeTitle(titleJP || titleEN, " 【exhentai】"),
-        english: titleEN,
-        japanese: titleJP,
-        url: window.location.href,
-
-        // coverPromise: fetch cover URL once; swallow errors and resolve to empty string on failure
-        coverPromise: fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) })
+      // coverPromise: fetch cover URL once; swallow errors and resolve to empty string on failure  
+      const coverPromise = fetch('https://api.e-hentai.org/api.php', { method: "POST", body: JSON.stringify({ "method": "gdata", "gidlist": [[galleryID, galleryToken]], "namespace": 1 }) })
           .then(response => response.ok ? response.json() : Promise.reject(new Error('cover fetch failed')))
           .then(json => (json && json.gmetadata && json.gmetadata[0] && json.gmetadata[0].thumb) || "")
-          .catch(() => ""),
+          .catch(() => "");
 
-        categories: (gdc && gdc.innerText) ? ["[[" + gdc.innerText.trim().toLowerCase().replaceAll(/\s/g,"-") + "]]"] : [], // gd3.Category => categories
+      const data = {
+        title: title,
+        english: titleEN,
+        japanese: titleJP,
+        url: url,
 
-        uploader: (gdn && gdn.innerText) ? ["[[" + gdn.innerText.trim() + "]]"] : [], // gd3.Uploader => uploader
+        coverPromise: coverPromise,
 
-        uploaded: data0.uploaded, // gd3.Posted => uploaded
-        parent: data0.parent, // gd3.Parent => parent
-        visible: data0.visible, // gd3.Visible => visible
-        language: data0.language, // gd3.Language and gd4.language => language
-        filesize: data0.filesize, // gd3.Filesize => filesize
-        pagecount: data0.pagecount, // gd3.length => pagecount
-        favorited: data0.favorited, // gd3.Favorited => favorited
+        categories: categories,
 
-        rating: parseFloat(document.getElementById("rating_label").innerText.replace(/Average: ([\d\.]*)/, "$1")),
+        uploader: uploader,
 
-        ctime: now,
-        mtime: now,
+        uploaded: uploaded, // gd3.Posted => uploaded
+        parent: parent, // gd3.Parent => parent
+        visible: visible, // gd3.Visible => visible
+        language: language, // gd3.Language and gd4.language => language
+        filesize: filesize, // gd3.Filesize => filesize
+        pagecount: pagecount, // gd3.length => pagecount
+        favorited: favorited, // gd3.Favorited => favorited
+
+        rating: rating,
+
+        ctime: ctime,
+        mtime: mtime,
 
         keywords: [],
         parody: [],
@@ -131,7 +147,7 @@
       if (taglist && taglist.firstChild && taglist.firstChild.firstChild) {
         [...taglist.firstChild.firstChild.children].forEach(c => {
           const key = (c.children[0] && c.children[0].innerText ? c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "") : "");
-          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + this.util.getTagNameStr(i) + "]]" ) : [];
+          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + util.getTagNameStr(i) + "]]" ) : [];
 
           const newValue = [...new Set(
             Array.isArray(data[key])
@@ -141,7 +157,7 @@
               : value
           )];
 
-          if (dataKeyIndexed.includes(key)) {
+          if (dataKeyIndexed.includes(key) && key !== "unindexedData") {
             data[key] = newValue;
           } else {
             data.unindexedData[key] = newValue;
@@ -154,67 +170,86 @@
 
     // Build Obsidian note content
     async getEXHentaiOBMDNoteFileContent(data) {
-      const coverUrl = await data.coverPromise;
+      const util = this.util;
+      
+      const yamlArray = util.getYamlArrayStr.bind(util);
+      const unindexDataYamlPart = util.getUnindexedDataFrontMatterPartStrBlock.bind(util);
+      const unindexDataTablePart = util.getUnindexedDataTablePartStrBlock.bind(util);
+
+      const {categories, keywords, 
+        female, male, mixed, location, other, 
+        title, english, japanese, url,
+        artist, group, 
+        parody, character, language,
+        pagecount, uploader,
+        parent, visible, filesize,
+        favorited, rating, uploaded,
+        ctime, mtime,
+        coverPromise,
+        unindexedData
+      } = data;
+      const coverUrl = await coverPromise; 
+      
       return `---
 up:
   - "[[Gallery]]"
-categories:${this.util.getYamlArrayStr(data.categories)}
-keywords:${this.util.getYamlArrayStr(data.keywords)}
-female:${this.util.getYamlArrayStr(data.female)}
-male:${this.util.getYamlArrayStr(data.male)}
-mixed:${this.util.getYamlArrayStr(data.mixed)}
-location:${this.util.getYamlArrayStr(data.location)}
-other:${this.util.getYamlArrayStr(data.other)}
-english: "${data.english}"
-japanese: "${data.japanese}"
-url: "${data.url}"
-artist:${this.util.getYamlArrayStr(data.artist)}
-group:${this.util.getYamlArrayStr(data.group)}
-parody:${this.util.getYamlArrayStr(data.parody)}
-character:${this.util.getYamlArrayStr(data.character)}
-language:${this.util.getYamlArrayStr(data.language)}
-pagecount: ${data.pagecount}
+categories:${yamlArray(categories)}
+keywords:${yamlArray(keywords)}
+female:${yamlArray(female)}
+male:${yamlArray(male)}
+mixed:${yamlArray(mixed)}
+location:${yamlArray(location)}
+other:${yamlArray(other)}
+english: "${english}"
+japanese: "${japanese}"
+url: "${url}"
+artist:${yamlArray(artist)}
+group:${yamlArray(group)}
+parody:${yamlArray(parody)}
+character:${yamlArray(character)}
+language:${yamlArray(language)}
+pagecount: ${pagecount}
 cover: "${coverUrl}"
-uploader:${this.util.getYamlArrayStr(data.uploader)}
-parent: "${data.parent}"
-visible: "${data.visible}"
-filesize: "${data.filesize}"
-favorited: ${data.favorited}
-rating: ${data.rating}
-uploaded: ${data.uploaded}
-ctime: ${data.ctime}
-mtime: ${data.mtime}${this.util.getUnindexedDataFrontMatterPartStrBlock(data.unindexedData)}
+uploader:${yamlArray(uploader)}
+parent: "${parent}"
+visible: "${visible}"
+filesize: "${filesize}"
+favorited: ${favorited}
+rating: ${rating}
+uploaded: ${uploaded}
+ctime: ${ctime}
+mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 ---
 
-# ${data.title}
+# ${title}
 
 ![200](${coverUrl})
 
 | | |
 | --- | --- |
-| title_en | \`${this.util.escapePipe(data.english)}\` |
-| title_jp | \`${this.util.escapePipe(data.japanese)}\` |
-| url | ${data.url} |
-| parody | ${data.parody.join(", ")} |
-| character | ${data.character.join(", ")} |
-| keywords | ${data.keywords.join(", ")} |
-| artist | ${data.artist.join(", ")} |
-| group | ${data.group.join(", ")} |
-| languages | ${data.language.join(", ")} |
-| categories | ${data.categories.join(", ")} |
-| female | ${data.female.join(", ")} |
-| male | ${data.male.join(", ")} |
-| mixed | ${data.mixed.join(", ")} |
-| location | ${data.location.join(", ")} |
-| other | ${data.other.join(", ")} |
-| pagecount | ${data.pagecount} |
-| uploader | ${data.uploader.join(", ")} |
-| uploaded | ${data.uploaded} |
-| parent | ${data.parent} |
-| visible | ${data.visible} |
-| filesize | ${data.filesize} |
-| favorited | ${data.favorited} |
-| rating | ${data.rating} |${this.util.getUnindexedDataTablePartStrBlock(data.unindexedData)}
+| title_en | \`${util.escapePipe(english)}\` |
+| title_jp | \`${util.escapePipe(japanese)}\` |
+| url | ${url} |
+| parody | ${parody.join(", ")} |
+| character | ${character.join(", ")} |
+| keywords | ${keywords.join(", ")} |
+| artist | ${artist.join(", ")} |
+| group | ${group.join(", ")} |
+| languages | ${language.join(", ")} |
+| categories | ${categories.join(", ")} |
+| female | ${female.join(", ")} |
+| male | ${male.join(", ")} |
+| mixed | ${mixed.join(", ")} |
+| location | ${location.join(", ")} |
+| other | ${other.join(", ")} |
+| pagecount | ${pagecount} |
+| uploader | ${uploader.join(", ")} |
+| uploaded | ${uploaded} |
+| parent | ${parent} |
+| visible | ${visible} |
+| filesize | ${filesize} |
+| favorited | ${favorited} |
+| rating | ${rating} |${unindexDataTablePart(unindexedData)}
 `;
     }
   }
