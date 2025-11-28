@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.19.20251118
+// @version      v1.0.20.20251128
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -56,7 +56,7 @@
           : key === "language"
             ? (() => {
               const languageStr = c.children[1].innerText;
-              return languageStr.length === 0 ? [] : languageStr.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? "[[translated]]" : ("[[" + i.toLowerCase() + "]]"));
+              return languageStr.length === 0 ? [] : languageStr.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? "[[translated]]" : (i==="n/a") ? ("[[n_a|n/a]]") : ("[[" + i.toLowerCase() + "]]"));
             })()
             : key === "length"
               ? parseInt(c.children[1].innerText.replace(/ pages$/, ""))
@@ -239,7 +239,7 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 | character | ${character.join(", ")} |
 | artist | ${artist.join(", ")} |
 | group | ${group.join(", ")} |
-| languages | ${language.join(", ")} |
+| languages | ${language.map(l=>util.escapePipe(l)).join(", ")} |
 | categories | ${categories.join(", ")} |
 | female | ${female.join(", ")} |
 | male | ${male.join(", ")} |
