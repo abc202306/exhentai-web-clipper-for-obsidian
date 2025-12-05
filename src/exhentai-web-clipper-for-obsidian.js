@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.20.20251128
+// @version      v1.0.21.20251205
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -304,12 +304,13 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
         .replace(/\[/g, "【")
         .replace(/\]/g, "】")
         .replace(/[#\\\/\|\*\?\:\<\>\"]/g, "_")
-        .replace(/\s{2,}/g, " ");
+        .replace(/\s{2,}/g, " ")
+        .trim();
     }
 
     getTitleStr(titleEl) {
       if (!titleEl) return "";
-      return titleEl.innerText.replace(/\s{2,}/g, " ").replace(/"/g, "\\\"");
+      return titleEl.innerText.replace(/\s{2,}/g, " ").replace(/"/g, "\\\"").trim();
     }
 
     getTagNameStr(str) {
