@@ -1,12 +1,15 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.21.20251205
+// @version      v1.0.22.20251205
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
 // @icon         none
-// @grant        none
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
+// @grant        GM_unregisterMenuCommand
 // @license      MIT
 // ==/UserScript==
 
@@ -18,7 +21,7 @@
 
     // Entry point
     static main() {
-      new Main(new Util());
+      new Main(Util.util);
     }
 
     constructor(util) {
@@ -260,7 +263,30 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 
   // utils  
 
+  class Config {
+    static config = new Config();
+    constructor() {
+      this.start();
+    }
+    menuCommandId;
+    registerMenuCommand(){
+      const pathValue = this.getPathValue();
+      return GM_registerMenuCommand("Set Path Value(path="+pathValue+")", () => {
+          GM_setValue("path", prompt("path=",pathValue));
+          GM_unregisterMenuCommand(menuCommandId);
+          this.menuCommandId = this.registerMenuCommand();
+      });
+    }
+    start() {
+      this.menuCommandId = this.registerMenuCommand();
+    }
+    getPathValue() {
+      return GM_getValue("path","acgdb/galleries").replace(/\/$/,"");
+    }
+  }
+
   class Util {
+    static util = new Util();
     startWebclipperWithDelay(timeout, message, getGalleryData, getOBMDNoteFileContent) {
       setTimeout(async () => {
         if (confirm(message)) {
@@ -275,7 +301,7 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
     // Build Obsidian URI
     getObsidianURI(theOBMDNotefileBaseName, theOBMDNoteFileContent) {
       const params = [
-        ["file", `acg/galleries/${theOBMDNotefileBaseName}`],
+        ["file", `${Config.config.getPathValue()}/${theOBMDNotefileBaseName}`],
         ["content", theOBMDNoteFileContent],
         ["append", "1"]
       ].map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
