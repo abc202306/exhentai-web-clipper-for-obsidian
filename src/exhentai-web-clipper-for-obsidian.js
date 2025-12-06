@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.23.20251206
+// @version      v1.0.24.20251206
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -270,20 +270,33 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
     constructor() {
       this.start();
     }
-    menuCommandId;
-    registerMenuCommand(){
+    menuCommandIdForPath;
+    menuCommandIdForVault;
+    registerMenuCommandForPath(){
       const pathValue = this.getPathValue();
-      return GM_registerMenuCommand("Set Path Value(path="+pathValue+")", () => {
+      return GM_registerMenuCommand("Set Path Value (path="+pathValue+")", () => {
           GM_setValue("path", prompt("path=",pathValue));
-          GM_unregisterMenuCommand(menuCommandId);
-          this.menuCommandId = this.registerMenuCommand();
+          GM_unregisterMenuCommand(this.menuCommandIdForPath);
+          this.menuCommandIdForPath = this.registerMenuCommandForPath();
+      });
+    }
+    registerMenuCommandForVault(){
+      const vaultValue = this.getVaultValue();
+      return GM_registerMenuCommand("Set Vault Value (vault="+vaultValue+")", () => {
+          GM_setValue("vault", prompt("vault=",vaultValue));
+          GM_unregisterMenuCommand(this.menuCommandIdForVault);
+          this.menuCommandIdForVault = this.registerMenuCommandForVault();
       });
     }
     start() {
-      this.menuCommandId = this.registerMenuCommand();
+      this.menuCommandIdForPath = this.registerMenuCommandForPath();
+      this.menuCommandIdForVault = this.registerMenuCommandForVault();
+    }
+    getVaultValue() {
+      return GM_getValue("vault","galleries");
     }
     getPathValue() {
-      return GM_getValue("path","acgdb/galleries").replace(/\/$/,"");
+      return GM_getValue("path","").replace(/\/$/,"");
     }
   }
 
@@ -303,7 +316,8 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
     // Build Obsidian URI
     getObsidianURI(theOBMDNotefileBaseName, theOBMDNoteFileContent) {
       const params = [
-        ["file", `${Config.config.getPathValue()}/${theOBMDNotefileBaseName}`],
+        ["vault", Config.config.getVaultValue()],
+        ["file", `${Config.config.getPathValue()}/${theOBMDNotefileBaseName}`.replace(/^\//, "")],
         ["content", theOBMDNoteFileContent],
         ["append", "1"]
       ].map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
