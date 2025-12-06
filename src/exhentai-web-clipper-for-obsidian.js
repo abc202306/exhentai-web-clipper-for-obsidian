@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.22.20251205
+// @version      v1.0.23.20251206
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -98,6 +98,7 @@
       const galleryID = gidPairResult ? gidPairResult[1] : null;
       const galleryToken = gidPairResult ? gidPairResult[2] : null;
 
+      const basename = `exhentai-${galleryID}-${galleryToken}`;
       const titleEN = util.getTitleStr(gn);
       const titleJP = util.getTitleStr(gj);
       const title = util.sanitizeTitle(titleJP || titleEN, " 【exhentai】 【exhentaiid"+galleryID+"】 【exhentaitoken"+galleryToken+"】");
@@ -111,6 +112,7 @@
         .catch(() => "");
 
       const data = {
+        basename: basename,
         title: title,
         english: titleEN,
         japanese: titleJP,
@@ -292,7 +294,7 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
         if (confirm(message)) {
           const galleryData = getGalleryData();
           const content = await Promise.resolve(getOBMDNoteFileContent(galleryData));
-          const obsidianURI = this.getObsidianURI(galleryData.title, content);
+          const obsidianURI = this.getObsidianURI(galleryData.basename, content);
           window.location.href = obsidianURI;
         }
       }, timeout);
