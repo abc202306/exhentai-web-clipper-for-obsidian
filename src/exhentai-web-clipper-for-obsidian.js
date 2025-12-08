@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.25.20251208
+// @version      v1.0.26.20251208
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -101,7 +101,7 @@
       const basename = `exhentai-${galleryID}-${galleryToken}`;
       const titleEN = util.getTitleStr(gn);
       const titleJP = util.getTitleStr(gj);
-      const title = util.sanitizeTitle(titleJP || titleEN, " 【exhentai】 【exhentaiid"+galleryID+"】 【exhentaitoken"+galleryToken+"】");
+      const title = util.sanitizeTitle(titleJP || titleEN);
 
       const aliases = (titleEN ? [titleEN] : []).concat(titleJP && titleJP !== titleEN ? [titleJP] : []); 
 
@@ -353,13 +353,8 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
       return (str || "").replace(/\|/g, "\\|");
     }
 
-    sanitizeTitle(titleStr, addtionalSuffix) {
-      return (titleStr + addtionalSuffix)
-        .replace(/\[/g, "【")
-        .replace(/\]/g, "】")
-        .replace(/[#\\\/\|\*\?\:\<\>\"]/g, "_")
-        .replace(/\s{2,}/g, " ")
-        .trim();
+    sanitizeTitle(titleStr, addtionalSuffix="") {
+      return '`'+(titleStr + addtionalSuffix).replace(/\s{2,}/g, " ").trim()+'`';
     }
 
     getTitleStr(titleEl) {
