@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.24.20251206
+// @version      v1.0.25.20251208
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -267,36 +267,48 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 
   class Config {
     static config = new Config();
+    static defaultValue = {
+      vault: "galleries",
+      path: "galleries/exhentai",
+      isAutoConfirm: "0"
+    }
+    getPath(){
+      return GM_getValue("path",Config.defaultValue.path).replace(/\/$/,"");
+    }
+    getVault(){
+      return GM_getValue("vault",Config.defaultValue.vault);
+    }
+    getISAutoConfirm(){
+      return GM_getValue("isAutoConfirm",Config.defaultValue.isAutoConfirm);
+    }
     constructor() {
-      this.start();
+      this.menuCommandIdForPath = this.registerMenuCommand(
+        this.getPath.bind(this),
+        "path",
+        "menuCommandIdForPath"
+      );
+      this.menuCommandIdForVault = this.registerMenuCommand(
+        this.getVault.bind(this),
+        "vault",
+        "menuCommandIdForVault"
+      );
+      this.menuCommandIdForIsAutoConfirm = this.registerMenuCommand(
+        this.getISAutoConfirm.bind(this),
+        "isAutoConfirm",
+        "menuCommandIdForIsAutoConfirm"
+      );
     }
     menuCommandIdForPath;
     menuCommandIdForVault;
-    registerMenuCommandForPath(){
-      const pathValue = this.getPathValue();
-      return GM_registerMenuCommand("Set Path Value (path="+pathValue+")", () => {
-          GM_setValue("path", prompt("path=",pathValue));
-          GM_unregisterMenuCommand(this.menuCommandIdForPath);
-          this.menuCommandIdForPath = this.registerMenuCommandForPath();
+    menuCommandIdForISAutoConfirm;
+    registerMenuCommand(getValue,valueKey,menuCommandIdKey){
+      const value = getValue();
+      const curConfigObj = this;
+      return GM_registerMenuCommand(`Set ${valueKey} Value (${valueKey}=${value}")`, () => {
+          GM_setValue(valueKey, prompt(`${valueKey}=`,value));
+          GM_unregisterMenuCommand(curConfigObj[menuCommandIdKey]);
+          curConfigObj[menuCommandIdKey] = curConfigObj.registerMenuCommand(getValue,valueKey,menuCommandIdKey);
       });
-    }
-    registerMenuCommandForVault(){
-      const vaultValue = this.getVaultValue();
-      return GM_registerMenuCommand("Set Vault Value (vault="+vaultValue+")", () => {
-          GM_setValue("vault", prompt("vault=",vaultValue));
-          GM_unregisterMenuCommand(this.menuCommandIdForVault);
-          this.menuCommandIdForVault = this.registerMenuCommandForVault();
-      });
-    }
-    start() {
-      this.menuCommandIdForPath = this.registerMenuCommandForPath();
-      this.menuCommandIdForVault = this.registerMenuCommandForVault();
-    }
-    getVaultValue() {
-      return GM_getValue("vault","galleries");
-    }
-    getPathValue() {
-      return GM_getValue("path","").replace(/\/$/,"");
     }
   }
 
@@ -304,7 +316,7 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
     static util = new Util();
     startWebclipperWithDelay(timeout, message, getGalleryData, getOBMDNoteFileContent) {
       setTimeout(async () => {
-        if (confirm(message)) {
+        if (Config.config.getISAutoConfirm()||confirm(message)) {
           const galleryData = getGalleryData();
           const content = await Promise.resolve(getOBMDNoteFileContent(galleryData));
           const obsidianURI = this.getObsidianURI(galleryData.basename, content);
@@ -316,8 +328,8 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
     // Build Obsidian URI
     getObsidianURI(theOBMDNotefileBaseName, theOBMDNoteFileContent) {
       const params = [
-        ["vault", Config.config.getVaultValue()],
-        ["file", `${Config.config.getPathValue()}/${theOBMDNotefileBaseName}`.replace(/^\//, "")],
+        ["vault", Config.config.getVault()],
+        ["file", `${Config.config.getPath()}/${theOBMDNotefileBaseName}`.replace(/^\//, "")],
         ["content", theOBMDNoteFileContent],
         ["append", "1"]
       ].map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&");
