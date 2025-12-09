@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.27.20251208
+// @version      v1.0.28.20251209
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -265,21 +265,22 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 
   // utils  
 
+  class DefaultConfig {
+    static vault = "galleries";
+    static path = "galleries/exhentai";
+    static isAutoConfirm = "0";
+  }
+
   class Config {
     static config = new Config();
-    static defaultValue = {
-      vault: "galleries",
-      path: "galleries/exhentai",
-      isAutoConfirm: "0"
-    }
     getPath(){
-      return GM_getValue("path",Config.defaultValue.path).replace(/\/$/,"");
+      return GM_getValue("path",DefaultConfig.path).replace(/\/$/,"");
     }
     getVault(){
-      return GM_getValue("vault",Config.defaultValue.vault);
+      return GM_getValue("vault",DefaultConfig.vault);
     }
     getISAutoConfirm(){
-      return GM_getValue("isAutoConfirm",Config.defaultValue.isAutoConfirm);
+      return GM_getValue("isAutoConfirm",DefaultConfig.isAutoConfirm);
     }
     constructor() {
       this.menuCommandIdForPath = this.registerMenuCommand(
