@@ -100,3 +100,7 @@ Additionally, you can download all image files linked to by external image links
 ![alt text](assets/exhentai-webclipper-for-obsidian-image-page3.png)
 ![alt text](assets/exhentai-webclipper-for-obsidian-image-page4.png)
 ![alt text](assets/exhentai-webclipper-for-obsidian-image-page5.png)
+
+## Obsidian Example Vault
+
+- https://github.com/abc202306/galleries
