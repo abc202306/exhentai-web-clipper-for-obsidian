@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.28.20251209
+// @version      v1.0.29.20251218
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -211,6 +211,7 @@ location:${yamlArray(location)}
 other:${yamlArray(other)}
 english: "${english}"
 japanese: "${japanese}"
+title: "${title}"
 url: "${url}"
 artist:${yamlArray(artist)}
 group:${yamlArray(group)}
