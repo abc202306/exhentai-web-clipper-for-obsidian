@@ -103,4 +103,5 @@ Additionally, you can download all image files linked to by external image links
 
 ## Obsidian Example Vault
 
-- https://github.com/abc202306/galleries
+- preview: https://abc202306.github.io/quartz
+- source: https://github.com/abc202306/galleries
