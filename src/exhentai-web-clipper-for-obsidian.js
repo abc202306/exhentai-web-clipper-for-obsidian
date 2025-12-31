@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.32.20251219
+// @version      v1.0.33.20260101
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -59,7 +59,7 @@
           : key === "language"
             ? (() => {
               const languageStr = c.children[1].innerText;
-              return languageStr.length === 0 ? [] : languageStr.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? "[[translated]]" : (i==="n/a") ? ("[[n_a|n/a]]") : ("[[" + i.toLowerCase() + "]]"));
+              return languageStr.length === 0 ? [] : languageStr.split(/\s+/).filter(i => i.length !== 0).map(i => (i === "TR") ? "[[exhentai-tag-translated|translated]]" : (i==="n/a") ? ("[[exhentai-tag-n_a|n_a]]") : (`[[exhentai-tag-${i.toLowerCase()}|${i.toLowerCase()}]]`));
             })()
             : key === "length"
               ? parseInt(c.children[1].innerText.replace(/ pages$/, ""))
@@ -86,8 +86,12 @@
 
       const { uploaded, parent, visible, language, filesize, pagecount, favorited } = data0;
 
-      const categories = (gdc && gdc.innerText) ? ["[[" + gdc.innerText.trim().toLowerCase().replaceAll(/\s/g, "-") + "]]"] : []; // gd3.Category => categories
-      const uploader = (gdn && gdn.innerText) ? ["[[" + gdn.innerText.trim() + "]]"] : []; // gd3.Uploader => uploader
+      const category = gdc.innerText.trim().toLowerCase().replaceAll(/\s/g, "-");
+
+      const uploaderItem = gdn.innerText.trim();
+
+      const categories = (gdc && gdc.innerText) ? [`[[exhentai-tag-${category}|${category}]]`] : []; // gd3.Category => categories
+      const uploader = (gdn && gdn.innerText) ? [`[[exhentai-uploader-${uploaderItem}|${uploaderItem}]]`] : []; // gd3.Uploader => uploader
 
       const rating = parseFloat(document.getElementById("rating_label").innerText.replace(/Average: ([\d\.]*)/, "$1"));
 
@@ -98,7 +102,7 @@
       const galleryID = gidPairResult ? gidPairResult[1] : null;
       const galleryToken = gidPairResult ? gidPairResult[2] : null;
 
-      const basename = `exhentai-${galleryID}-${galleryToken}`;
+      const basename = `exhentai-g-${galleryID}-${galleryToken}`;
       const titleEN = util.getTitleStr(gn);
       const titleJP = util.getTitleStr(gj);
       const title = util.sanitizeTitle(titleJP || titleEN);
@@ -155,7 +159,7 @@
       if (taglist && taglist.firstChild && taglist.firstChild.firstChild) {
         [...taglist.firstChild.firstChild.children].forEach(c => {
           const key = (c.children[0] && c.children[0].innerText ? c.children[0].innerText.replace(/:$/, "").toLowerCase().replaceAll(/\s/g, "") : "");
-          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => "[[" + util.getTagNameStr(i) + "]]") : [];
+          const value = (c.children[1] && c.children[1].innerText) ? c.children[1].innerText.split("\n").map(i => `[[exhentai-tag-${util.getTagNameStr(i)}|${util.getTagNameStr(i)}]]`) : [];
 
           const newValue = [...new Set(
             Array.isArray(data[key])
@@ -241,25 +245,25 @@ mtime: ${mtime}${unindexDataYamlPart(unindexedData)}
 | title_en | \`${util.escapePipe(english)}\` |
 | title_jp | \`${util.escapePipe(japanese)}\` |
 | url | ${url} |
-| parody | ${parody.join(", ")} |
-| character | ${character.join(", ")} |
-| artist | ${artist.join(", ")} |
-| group | ${group.join(", ")} |
-| languages | ${language.map(l=>util.escapePipe(l)).join(", ")} |
-| categories | ${categories.join(", ")} |
-| female | ${female.join(", ")} |
-| male | ${male.join(", ")} |
-| mixed | ${mixed.join(", ")} |
-| location | ${location.join(", ")} |
-| other | ${other.join(", ")} |
+| parody | ${util.escapePipe(parody.join(", "))} |
+| character | ${util.escapePipe(character.join(", "))} |
+| artist | ${util.escapePipe(artist.join(", "))} |
+| group | ${util.escapePipe(group.join(", "))} |
+| languages | ${util.escapePipe(util.escapePipe(language.join(", ")))} |
+| categories | ${util.escapePipe(categories.join(", "))} |
+| female | ${util.escapePipe(female.join(", "))} |
+| male | ${util.escapePipe(male.join(", "))} |
+| mixed | ${util.escapePipe(mixed.join(", "))} |
+| location | ${util.escapePipe(location.join(", "))} |
+| other | ${util.escapePipe(other.join(", "))} |
 | pagecount | ${pagecount} |
-| uploader | ${uploader.join(", ")} |
+| uploader | ${util.escapePipe(uploader.join(", "))} |
 | uploaded | ${uploaded} |
 | parent | ${parent} |
 | visible | ${visible} |
 | filesize | ${filesize} |
 | favorited | ${favorited} |
-| rating | ${rating} |${unindexDataTablePart(unindexedData)}
+| rating | ${rating} |${util.escapePipe(unindexDataTablePart(unindexedData))}
 `;
     }
   }
