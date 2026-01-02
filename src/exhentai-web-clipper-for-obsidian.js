@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         EXHentai Web Clipper for Obsidian
 // @namespace    https://exhentai.org
-// @version      v1.0.33.20260101
+// @version      v1.0.34.20260102
 // @description  🔞 A user script that exports EXHentai gallery metadata as Obsidian Markdown files (Obsidian EXHentai Web Clipper).
 // @author       abc202306
 // @match        https://exhentai.org/g/*
@@ -206,7 +206,7 @@
 
       return `---
 up:
-  - "[[gallery]]"
+  - "[[collection-gallery-items|collection-gallery-items]]"
 categories:${yamlArray(categories)}
 female:${yamlArray(female)}
 male:${yamlArray(male)}
